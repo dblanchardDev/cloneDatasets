@@ -56,7 +56,7 @@ def execute(datasetList, outGDB, overwrite):
 			success = False
 			arcpy.AddError("An error occurred while cloning {0}".format(dataset))
 		
-		if success not None:
+		if success is not None:
 			arcpy.SetProgressorPosition()
 			results["successes" if success else "failures"] += 1
 
@@ -66,7 +66,7 @@ def execute(datasetList, outGDB, overwrite):
 		success = None
 		
 		try:
-			success = cloneRelationshipClass(desc)
+			success = cloneRelationshipClass(desc, outGDB)
 		except Exception:
 			success = False
 			arcpy.AddError("An error occurred while cloning the {0} relationship class".fromat(dataset))
@@ -82,7 +82,7 @@ def execute(datasetList, outGDB, overwrite):
 
 def cloneFeatureClass(desc, outGDB, overwrite):
 	'''Clone a feature class (name, shape type, schema, and domains)'''
-	success == True
+	success = True
 	
 	# Cannot clone FCs without a shape type
 	if desc.shapeType == "Any":
@@ -90,7 +90,7 @@ def cloneFeatureClass(desc, outGDB, overwrite):
 		success == False
 	
 	# Cannot clone non-simple feature classes
-	elif desc.featureType == "Simple":
+	elif not desc.featureType == "Simple":
 		arcpy.AddError("Unable to clone {0} as it is not a simple feature class".format(desc.name))
 	
 	else:
@@ -103,7 +103,7 @@ def cloneFeatureClass(desc, outGDB, overwrite):
 		SAT = "SAME_AS_TEMPLATE"
 		
 		if existsOrReplace(outGDB, name, overwrite):
-			arcpy.CreateFeatureclass_management(output, name, shape, template, SAT, SAT, template)
+			arcpy.CreateFeatureclass_management(outGDB, name, shape, template, SAT, SAT, template)
 			arcpy.AddMessage("Cloned Feature Class {0}".format(name))
 	
 	return success
@@ -112,14 +112,14 @@ def cloneFeatureClass(desc, outGDB, overwrite):
 
 def cloneTables(desc, outGDB, overwrite):
 	'''Clone a GDB table (name, schema and domains)'''
-	success == True
+	success = True
 	
-	cloneDomains(desc, output)
+	cloneDomains(desc, outGDB)
 	name = desc.name.split(".")[-1]
 	template = "{0}\\{1}".format(desc.path, desc.name)
 	
 	if existsOrReplace(outGDB, name, overwrite):
-		arcpy.CreateTable_management(output, name, template)
+		arcpy.CreateTable_management(outGDB, name, template)
 		arcpy.AddMessage("Cloned Table {0}".format(name))
 	
 	return success
@@ -169,17 +169,17 @@ def cloneDomains(datasetDesc, outGDB):
 
 
 
-def cloneRelationshipClass(desc):
+def cloneRelationshipClass(desc, outGDB):
 	'''Clone a relationship class (all properties)'''
 	success = True
 	name = desc.name.split(".")[-1]
 	
 	# Derive origin/destination tables paths for the output GDB
 	originTableName = desc.originClassNames[0].split(".")[-1]
-	originTable = "{0}\\{1}".format(output, originTableName)
+	originTable = "{0}\\{1}".format(outGDB, originTableName)
 	
 	destinTableName = desc.destinationClassNames[0].split(".")[-1]
-	destinTable = "{0}\\{1}".format(output, destinTableName)
+	destinTable = "{0}\\{1}".format(outGDB, destinTableName)
 	
 	# Ensure origin/destination tables exists in output GDB
 	if not arcpy.Exists(originTable):
@@ -192,7 +192,7 @@ def cloneRelationshipClass(desc):
 	
 	else:
 		# Translate properties to parameters
-		path_name = "{0}\\{1}".format(output, name)
+		path_name = "{0}\\{1}".format(outGDB, name)
 		type = "COMPOSITE" if desc.isComposite else "SIMPLE"
 		fLabel = desc.forwardPathLabel
 		bLabel = desc.backwardPathLabel
@@ -267,7 +267,7 @@ if __name__ == "__main__":
 	# Process the attributes
 	if datasets is not None:
 		datasetList = []
-		for item in inputs.split(";"):
+		for item in datasets.split(";"):
 			datasetList.append(item[1:-1])
 	
 	# If none provided through parameters, fall-back to in-code parameters
