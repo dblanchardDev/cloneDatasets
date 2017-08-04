@@ -69,7 +69,7 @@ def execute(datasetList, outGDB, overwrite):
 			success = cloneRelationshipClass(desc, outGDB)
 		except Exception:
 			success = False
-			arcpy.AddError("An error occurred while cloning the {0} relationship class".fromat(dataset))
+			arcpy.AddError("An error occurred while cloning the {0} relationship class".format(desc.name))
 		
 		arcpy.SetProgressorPosition()
 		results["successes" if success else "failures"] += 1
@@ -87,7 +87,7 @@ def cloneFeatureClass(desc, outGDB, overwrite):
 	# Cannot clone FCs without a shape type
 	if desc.shapeType == "Any":
 		arcpy.AddError("Unable to clone {0} as the shape type is not defined".format(desc.name))
-		success == False
+		success = False
 	
 	# Cannot clone non-simple feature classes
 	elif not desc.featureType == "Simple":
@@ -139,7 +139,7 @@ def cloneDomains(datasetDesc, outGDB):
 	
 	# Add missing domains to output GDB
 	if len(missingDomains) > 0:
-		domainList = arcpy.da.ListDomains(datasetDesc.path)
+		domainList = arcpy.da.ListDomains(datasetDesc.path) #pylint: disable=E1101
 		
 		for domainName in missingDomains:
 			domain = [e for e in domainList if e.name == domainName][0]
@@ -193,7 +193,7 @@ def cloneRelationshipClass(desc, outGDB):
 	else:
 		# Translate properties to parameters
 		path_name = "{0}\\{1}".format(outGDB, name)
-		type = "COMPOSITE" if desc.isComposite else "SIMPLE"
+		relType = "COMPOSITE" if desc.isComposite else "SIMPLE"
 		fLabel = desc.forwardPathLabel
 		bLabel = desc.backwardPathLabel
 		msg_dir = {"None": "NONE", "Forward": "FORWARD", "Backward": "BACK", "Both": "BOTH"}[desc.notification]
@@ -213,12 +213,12 @@ def cloneRelationshipClass(desc, outGDB):
 		if desc.isAttributed:
 			fields = [e.name for e in desc.fields]
 			table = arcpy.CreateTable_management("in_memory", "relClass", "{0}\\{1}".format(desc.path, desc.name))
-			arcpy.TableToRelationshipClass_management(originTable, destinTable, path_name, type, fLabel, bLabel, msg_dir, cardinality, table, fields, originKeyPrim, originKeyFore, destinKeyPrim, destinKeyFore)
+			arcpy.TableToRelationshipClass_management(originTable, destinTable, path_name, relType, fLabel, bLabel, msg_dir, cardinality, table, fields, originKeyPrim, originKeyFore, destinKeyPrim, destinKeyFore)
 			arcpy.Delete_management(table)
 		
 		# If not attributed, create a simple relationship class
 		else:
-			arcpy.CreateRelationshipClass_management(originTable, destinTable, path_name, type, fLabel, bLabel, msg_dir, cardinality, attributed, originKeyPrim, originKeyFore, destinKeyPrim, destinKeyFore)
+			arcpy.CreateRelationshipClass_management(originTable, destinTable, path_name, relType, fLabel, bLabel, msg_dir, cardinality, attributed, originKeyPrim, originKeyFore, destinKeyPrim, destinKeyFore)
 		
 		# Check for relationship rules (which are not copied by this tool)
 		if len(desc.relationshipRules) > 0:
@@ -257,24 +257,22 @@ def existsOrReplace(outGDB, name, overwrite):
 
 ##MAIN EXECUTION CODE##############################################################################
 if __name__ == "__main__":
-	'''Execute when running outside Python Toolbox'''
+	#Execute when running outside Python Toolbox
 	
 	# Attempt to retrieve parameters from normal toolbox tool
-	datasets = arcpy.GetParameterAsText(0)
-	outGDB = arcpy.GetParameterAsText(1)
-	overwrite = arcpy.GetParameterAsText(2).lower() == "true"
+	datasetsParam = arcpy.GetParameterAsText(0)
+	outGDBParam = arcpy.GetParameterAsText(1)
+	overwriteParam = arcpy.GetParameterAsText(2).lower() == "true"
 	
 	# Process the attributes
-	if datasets is not None:
-		datasetList = []
-		for item in datasets.split(";"):
-			datasetList.append(item[1:-1])
+	if datasetsParam is not None:
+		datasetListParam = [x[1:-1] for x in datasetsParam.split(";")]
 	
 	# If none provided through parameters, fall-back to in-code parameters
 	else:
-		datasetList = params["datasets"]
-		outGDB = params["outGDB"]
-		overwrite = params["overwrite"]
+		datasetListParam = params["datasets"]
+		outGDBParamParam = params["outGDB"]
+		overwriteParam = params["overwrite"]
 	
 	# Run the processing
-	execute(datasetList, outGDB, overwrite)
+	execute(datasetListParam, outGDBParam, overwriteParam)
