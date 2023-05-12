@@ -5,6 +5,9 @@ Create new empty datasets using existing feature classes, tables, and relationsh
 
 This tool can be run stand-alone in Python or through ArcGIS Desktop using the included toolbox.
 
+> 🛑 **Deprecated**  
+> This tool was written for ArcMap which is now nearing end-of-life. Consider switching your workflows to use ArcGIS Pro. No equivalent of this tool exists for ArcGIS Pro, but you may be able to adapt the code from this project to work with ArcGIS Pro.
+
 ### Requirements
 - Python 2.7
 - ArcGIS Desktop or Server with the ArcPy library installed
